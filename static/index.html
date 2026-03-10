@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parser</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <header>
+                <h1>Parser</h1>
+                <p>Paradigmas de programación</p>
+            </header>
+
+            <section class="controls">
+                <div class="input-group-vertical">
+                    <textarea id="codigo-fuente" placeholder="Pega tu código aquí (Java)"
+                        aria-label="Código fuente"></textarea>
+                    <button id="analizar-btn" class="primary-btn">Generar Árbol</button>
+                </div>
+
+                <div id="status-bubble" class="status-indicator hidden"></div>
+            </section>
+        </aside>
+
+        <main class="canvas-area">
+            <svg id="tree-svg">
+                <g id="links-group"></g>
+                <g id="nodes-group"></g>
+            </svg>
+            <div id="status-bubble" class="hidden"></div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
