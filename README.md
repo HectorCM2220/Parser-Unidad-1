@@ -51,36 +51,4 @@ Respuesta en JSON estructurado
 
 Integración con frontend estático
 
--- Arquitectura del Proyecto --
-project/
-│
-├── main.py
-├── static/
-│   └── index.html
-│
-└── README.md
-
----- Instalación ----
-Clonar el repositorio
-git clone https://github.com/tuusuario/analizador-lexico-sintactico.git
-cd analizador-lexico-sintactico
-
-Crear entorno virtual (opcional pero recomendado)
-python -m venv venv
-
--- Activar entorno --
-
-Windows
-venv\Scripts\activate
-
-Linux / Mac
-source venv/bin/activate
-
--- Instalar dependencias --
-pip install fastapi uvicorn pydantic
--- Ejecutar el servidor --
-python main.py
-
-o
-
 uvicorn main:app --reload
