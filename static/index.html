@@ -23,7 +23,11 @@
                 <div class="input-group-vertical">
                     <textarea id="codigo-fuente" placeholder="Pega tu código aquí (Java)"
                         aria-label="Código fuente"></textarea>
-                    <button id="analizar-btn" class="primary-btn">Generar Árbol</button>
+                    <div class="button-row">
+                        <button id="analizar-btn" class="primary-btn">Generar Árbol</button>
+                        <button id="cargar-btn" class="secondary-btn-outline">Cargar Archivo</button>
+                    </div>
+                    <input type="file" id="archivo-java" accept=".java" style="display: none;">
                 </div>
 
                 <div id="status-bubble" class="status-indicator hidden"></div>
