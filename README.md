@@ -1,9 +1,9 @@
 Parser
 
 Miembros del equipo:
-Alejandro Ceja Cervantes
-Covarrubias Martinez Hector
-Escobar Rubio Dominic
+Alejandro Ceja Cervantes.
+Covarrubias Martinez Hector.
+Escobar Rubio Dominic.
 
 Este proyecto implementa un analizador léxico y sintáctico para Java, desarrollado en Python usando FastAPI.
 
@@ -13,13 +13,13 @@ El resultado se devuelve en formato JSON, lo que permite visualizar la estructur
 
 -- Características --
 
-Análisis léxico
+Análisis léxico.
 
-Identificación de tokens
+Identificación de tokens.
 
-Reconocimiento de palabras clave
+Reconocimiento de palabras clave.
 
-Manejo de números, cadenas, operadores y delimitadores
+Manejo de números, cadenas, operadores y delimitadores.
 
  -- Análisis sintáctico --
 
@@ -27,15 +27,15 @@ Construcción de AST (Abstract Syntax Tree)
 
 Soporte para:
 
-Clases
+Clases.
 
-Métodos
+Métodos.
 
-Declaraciones de variables
+Declaraciones de variables.
 
-Asignaciones
+Asignaciones.
 
-Expresiones aritméticas
+Expresiones aritméticas.
 
 Condicionales if / else
 
