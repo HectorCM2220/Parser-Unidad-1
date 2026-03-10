@@ -3,7 +3,7 @@ Parser
 Miembros del equipo:
 Alejandro Ceja Cervantes
 Covarrubias Martinez Hector
-Rubio Dominic
+Escobar Rubio Dominic
 
 Este proyecto implementa un analizador léxico y sintáctico para Java, desarrollado en Python usando FastAPI.
 
