@@ -78,12 +78,25 @@ class AnalizadorSintactico:
     def token_actual(self):
         return self.tokens[self.pos] if self.pos < len(self.tokens) else None
 
-    def consumir(self, tipo_token):
+    def consumir(self, tipo_esperado):
         token = self.token_actual()
-        if token and (token.tipo == tipo_token or (isinstance(tipo_token, list) and token.tipo in tipo_token)):
-            self.pos += 1
-            return token
+        if token:
+            if isinstance(tipo_esperado, list):
+                if token.tipo in tipo_esperado:
+                    self.pos += 1
+                    return token
+            elif token.tipo == tipo_esperado:
+                self.pos += 1
+                return token
         return None
+
+    def requerir(self, tipo_esperado):
+        token = self.consumir(tipo_esperado)
+        if not token:
+            esperado = tipo_esperado
+            encontrado = self.token_actual().tipo if self.token_actual() else "EOF"
+            raise Exception(f"Error de sintaxis: se esperaba {esperado}, se encontró {encontrado}")
+        return token
 
     def analizar(self):
         hijos = []
@@ -92,6 +105,8 @@ class AnalizadorSintactico:
             if bloque:
                 hijos.append(bloque)
             else:
+                # Si sentencia no consume nada, avanzamos para evitar bucles infinitos
+                # Esto podría indicar un error de sintaxis no manejado por sentencia
                 self.pos += 1
         
         if len(hijos) == 1:
@@ -103,7 +118,11 @@ class AnalizadorSintactico:
         if not token: return None
         
         if token.tipo in ('PUBLIC', 'PRIVATE', 'CLASS', 'STATIC', 'VOID', 'INT', 'STRING', 'DOUBLE', 'FLOAT', 'ID'):
-            if token.tipo == 'CLASS':
+            # Detectar clase con modificadores (public class ...)
+            temp_pos = self.pos
+            while temp_pos < len(self.tokens) and self.tokens[temp_pos].tipo in ('PUBLIC', 'PRIVATE', 'STATIC'):
+                temp_pos += 1
+            if temp_pos < len(self.tokens) and self.tokens[temp_pos].tipo == 'CLASS':
                 return self.clase()
             
             # Buscar si es un método (hay un '(' antes de ';' o '{')
@@ -114,7 +133,7 @@ class AnalizadorSintactico:
                 if t.tipo == 'PAR_IZQ':
                     es_metodo = True
                     break
-                if t.tipo in ('PUNTOYCOMA', 'LLAVE_IZQ', 'LLAVE_DER'):
+                if t.tipo in ('PUNTOYCOMA', 'LLAVE_IZQ', 'LLAVE_DER', 'ASIGNAR'):
                     break
                 temp_pos += 1
             
@@ -127,29 +146,29 @@ class AnalizadorSintactico:
         elif token.tipo == 'WHILE':
             return self.mientras()
         elif token.tipo == 'RETURN':
-            self.consumir('RETURN')
+            self.requerir('RETURN')
             expr = self.expresion()
-            if self.token_actual() and self.token_actual().tipo == 'PUNTOYCOMA':
-                self.consumir('PUNTOYCOMA')
+            self.requerir('PUNTOYCOMA')
             return Nodo("return", [expr])
         elif token.tipo == 'PRINT' or token.tipo == 'SYSTEM_OUT_PRINTLN':
             func_token = self.consumir(token.tipo)
             func_name = func_token.valor if func_token else "print"
-            self.consumir('PAR_IZQ')
+            self.requerir('PAR_IZQ')
             expr = self.expresion()
-            self.consumir('PAR_DER')
-            if self.token_actual() and self.token_actual().tipo == 'PUNTOYCOMA':
-                self.consumir('PUNTOYCOMA')
+            self.requerir('PAR_DER')
+            self.requerir('PUNTOYCOMA')
             return Nodo(func_name, [expr])
         
         return None
 
     def clase(self):
-        self.consumir('CLASS')
-        nombre = self.consumir('ID')
-        self.consumir('LLAVE_IZQ')
+        while self.token_actual() and self.token_actual().tipo in ('PUBLIC', 'PRIVATE', 'STATIC'):
+            self.consumir(self.token_actual().tipo)
+        self.requerir('CLASS')
+        nombre = self.requerir('ID')
+        self.requerir('LLAVE_IZQ')
         cuerpo = self.bloque_llaves()
-        self.consumir('LLAVE_DER')
+        self.requerir('LLAVE_DER')
         return Nodo('class', [Nodo(nombre.valor), cuerpo])
 
     def metodo(self):
@@ -161,10 +180,9 @@ class AnalizadorSintactico:
         tipo_retorno = self.consumir(['VOID', 'INT', 'STRING', 'DOUBLE', 'FLOAT', 'ID'])
         if not tipo_retorno: return None
         
-        nombre = self.consumir('ID')
-        if not nombre: return None
+        nombre = self.requerir('ID')
         
-        self.consumir('PAR_IZQ')
+        self.requerir('PAR_IZQ')
         params = []
         while self.token_actual() and self.token_actual().tipo != 'PAR_DER':
              ptipo_token = self.consumir(['INT', 'STRING', 'DOUBLE', 'FLOAT', 'ID'])
@@ -172,50 +190,54 @@ class AnalizadorSintactico:
              
              ptipo_str = str(ptipo_token.valor)
              if self.token_actual() and self.token_actual().tipo == 'COR_IZQ':
-                 self.consumir('COR_IZQ')
-                 self.consumir('COR_DER')
+                 self.requerir('COR_IZQ')
+                 self.requerir('COR_DER')
                  ptipo_str += "[]"
                  
-             pnombre = self.consumir('ID')
+             pnombre = self.requerir('ID')
              if pnombre: 
                  params.append(Nodo(f"{ptipo_str} {pnombre.valor}"))
              
              if self.token_actual() and self.token_actual().tipo == 'COMA':
                  self.consumir('COMA')
         
-        self.consumir('PAR_DER')
-        self.consumir('LLAVE_IZQ')
+        self.requerir('PAR_DER')
+        self.requerir('LLAVE_IZQ')
         cuerpo = self.bloque_llaves()
-        self.consumir('LLAVE_DER')
+        self.requerir('LLAVE_DER')
         return Nodo('method', [Nodo(nombre.valor), Nodo('parámetros', params), cuerpo])
 
     def si_entonces(self):
-        self.consumir('IF')
-        self.consumir('PAR_IZQ')
+        self.requerir('IF')
+        self.requerir('PAR_IZQ')
         cond = self.expresion()
-        self.consumir('PAR_DER')
-        self.consumir('LLAVE_IZQ')
+        self.requerir('PAR_DER')
+        
+        # En Java, un bloque if tiene llaves, o es una sola sentencia. Como pediste forzar llaves:
+        self.requerir('LLAVE_IZQ')
         bloque_si = self.bloque_llaves()
-        self.consumir('LLAVE_DER')
+        self.requerir('LLAVE_DER')
         hijos = [Nodo("condición", [cond]), Nodo("bloque_if", [bloque_si])]
         
         if self.token_actual() and self.token_actual().tipo == 'ELSE':
             self.consumir('ELSE')
-            self.consumir('LLAVE_IZQ')
+            self.requerir('LLAVE_IZQ')
             bloque_sino = self.bloque_llaves()
-            self.consumir('LLAVE_DER')
+            self.requerir('LLAVE_DER')
             hijos.append(Nodo("bloque_else", [bloque_sino]))
         
         return Nodo("if", hijos)
 
     def mientras(self):
-        self.consumir('WHILE')
-        self.consumir('PAR_IZQ')
+        self.requerir('WHILE')
+        self.requerir('PAR_IZQ')
         cond = self.expresion()
-        self.consumir('PAR_DER')
-        self.consumir('LLAVE_IZQ')
+        self.requerir('PAR_DER')
+        
+        # Forzar llaves
+        self.requerir('LLAVE_IZQ')
         cuerpo = self.bloque_llaves()
-        self.consumir('LLAVE_DER')
+        self.requerir('LLAVE_DER')
         return Nodo("while", [Nodo("condición", [cond]), Nodo("bloque", [cuerpo])])
 
     def bloque_llaves(self):
@@ -236,27 +258,25 @@ class AnalizadorSintactico:
         
         tipo_str = str(tipo_token.valor)
         if self.token_actual() and self.token_actual().tipo == 'COR_IZQ':
-            self.consumir('COR_IZQ')
-            self.consumir('COR_DER')
+            self.requerir('COR_IZQ')
+            self.requerir('COR_DER')
             tipo_str += "[]"
             
         # Podría ser solo un ID (como una variable en una expresión) o una declaración
         if self.token_actual() and self.token_actual().tipo == 'ID':
-            nombre = self.consumir('ID')
+            nombre = self.requerir('ID')
             hijos = [Nodo(nombre.valor)]
             if self.token_actual() and self.token_actual().tipo == 'ASIGNAR':
                 self.consumir('ASIGNAR')
                 hijos.append(self.expresion())
-            if self.token_actual() and self.token_actual().tipo == 'PUNTOYCOMA':
-                self.consumir('PUNTOYCOMA')
+            self.requerir('PUNTOYCOMA')
             return Nodo(tipo_str, hijos)
 
         # Si es una asignación directa (x = 5)
         if self.token_actual() and self.token_actual().tipo == 'ASIGNAR':
             self.consumir('ASIGNAR')
             expr = self.expresion()
-            if self.token_actual() and self.token_actual().tipo == 'PUNTOYCOMA':
-                self.consumir('PUNTOYCOMA')
+            self.requerir('PUNTOYCOMA')
             return Nodo('=', [Nodo(tipo_str), expr])
             
         return Nodo(tipo_str)

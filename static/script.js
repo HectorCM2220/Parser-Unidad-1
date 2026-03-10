@@ -32,28 +32,79 @@ async function analizar() {
 function renderTree() {
     linksGroup.innerHTML = '';
     nodesGroup.innerHTML = '';
+    linksGroup.removeAttribute('transform');
+    nodesGroup.removeAttribute('transform');
+
     if (!treeData) return;
 
-    const width = svg.clientWidth || window.innerWidth - 320;
-    calculatePositions(treeData, width / 2, 60, width / 2);
+    // Reiniciamos el contador global X para dibujar el árbol desde la izquierda
+    globalLeafX = 0;
+
+    // Calcular posiciones garantizando que ninguna hoja se superponga
+    calculatePositions(treeData, 0);
+
+    // Dibujar los elementos primero para que el navegador calcule su caja (BBox)
     drawTree(treeData);
+
+    // Necesitamos un macro-task para que el SVG calcule el BBox correctamente en el DOM
+    setTimeout(() => {
+        try {
+            const bbox = nodesGroup.getBBox();
+            const padding = 100;
+
+            const treeWidth = bbox.width + padding * 2;
+            const treeHeight = bbox.height + bbox.y + padding;
+
+            const containerArea = svg.parentElement;
+            const containerWidth = containerArea.clientWidth;
+            const containerHeight = containerArea.clientHeight;
+
+            const finalWidth = Math.max(containerWidth, treeWidth);
+            const finalHeight = Math.max(containerHeight, treeHeight);
+
+            // Forzar el tamaño del SVG para habilitar el scroll del contenedor si excede el tamaño
+            svg.setAttribute("width", finalWidth);
+            svg.setAttribute("height", finalHeight);
+
+            // Centrar el árbol horizontalmente desplazando los grupos
+            const shiftX = (finalWidth / 2) - (bbox.x + bbox.width / 2);
+
+            nodesGroup.setAttribute('transform', `translate(${shiftX}, 0)`);
+            linksGroup.setAttribute('transform', `translate(${shiftX}, 0)`);
+
+        } catch (e) {
+            console.error("No se pudo calcular la caja de dimensiones", e);
+        }
+    }, 0);
 }
 
-function calculatePositions(node, x, y, horizontalRange) {
+const HORIZONTAL_SPACING = 100; // Espaciado estricto entre hojas
+let globalLeafX = 0;
+
+function calculatePositions(node, depth) {
     if (!node) return;
-    node.x = x;
-    node.y = y;
 
-    if (node.hijos && node.hijos.length > 0) {
-        const n = node.hijos.length;
-        const startX = x - horizontalRange / 2;
-        const step = n > 1 ? horizontalRange / (n - 1) : 0;
-        const nextRange = horizontalRange / 2;
+    // Altura siempre fija basada en la profundidad
+    node.y = (depth * VERTICAL_SPACING) + 80;
 
-        node.hijos.forEach((hijo, i) => {
-            const hijoX = n > 1 ? startX + i * step : x;
-            calculatePositions(hijo, hijoX, y + VERTICAL_SPACING, nextRange);
-        });
+    if (!node.hijos || node.hijos.length === 0) {
+        // Es un nodo final (hoja): le damos su columna X exclusiva y avanzamos el contador
+        node.x = globalLeafX;
+        globalLeafX += HORIZONTAL_SPACING;
+    } else {
+        // Tiene hijos: calcular posiciones de todos los hijos de izquierda a derecha
+        node.hijos.forEach(hijo => calculatePositions(hijo, depth + 1));
+
+        // El padre se centra exactamente en medio de su primer y último hijo
+        const firstChildX = node.hijos[0].x;
+        const lastChildX = node.hijos[node.hijos.length - 1].x;
+        node.x = (firstChildX + lastChildX) / 2;
+
+        // Truco de espaciado: Si un padre no tiene hermanos pero la hoja de la derecha está lejos,
+        // avanzamos ligeramente el globalLeafX para generar un respiro
+        if (globalLeafX <= node.x) {
+            globalLeafX = node.x + HORIZONTAL_SPACING;
+        }
     }
 }
 

@@ -329,13 +329,15 @@ textarea#codigo-fuente:focus {
 .canvas-area {
     flex: 1;
     position: relative;
-    overflow: hidden;
-    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+    overflow: auto;
+    /* SCROLL NATIVO ACTIVO */
+    background-color: #0f172a;
+    /* Fondo sólido para que no se arruine al hacer scroll */
 }
 
 #tree-svg {
-    width: 100%;
-    height: 100%;
+    display: block;
+    /* width y height se controlan directamente desde JS para detonar el scroll */
 }
 
 .node-circle {
