@@ -3,6 +3,8 @@ const linksGroup = document.getElementById('links-group');
 const nodesGroup = document.getElementById('nodes-group');
 const codigoInput = document.getElementById('codigo-fuente');
 const analizarBtn = document.getElementById('analizar-btn');
+const cargarBtn = document.getElementById('cargar-btn');
+const fileInput = document.getElementById('archivo-java');
 const statusBubble = document.getElementById('status-bubble');
 
 let treeData = null;
@@ -157,4 +159,28 @@ function showStatus(text, isError = false) {
 }
 
 analizarBtn.addEventListener('click', analizar);
+cargarBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.java')) {
+        showStatus("Selecciona un archivo .java válido", true);
+        fileInput.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        codigoInput.value = event.target.result;
+        analizar();
+        fileInput.value = ''; // Limpiar para permitir cargar el mismo archivo
+    };
+    reader.onerror = () => {
+        showStatus("Error al leer el archivo", true);
+    };
+    reader.readAsText(file);
+});
+
 window.addEventListener('resize', renderTree);
